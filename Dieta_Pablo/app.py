@@ -1,60 +1,51 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
-import os
 
-# 1. Configuración de la Página
-st.set_page_config(page_title="NutriScan - IA de Calorías", page_icon="🍎")
+# Configuración visual para móvil
+st.set_page_config(page_title="NutriScan IA", page_icon="🥗", layout="centered")
 
-# 2. Configura tu API KEY (Reemplaza con tu clave real)
-# Puedes obtenerla en: https://aistudio.google.com/
-os.environ["GOOGLE_API_KEY"] = "TU_API_KEY_AQUI"
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+# --- CONFIGURACIÓN DE TU API KEY ---
+API_KEY = "AIzaSyAb02j--_XEA-P9pZLT4a-iihHVDXHAPz4"
+genai.configure(api_key=API_KEY)
 
-def get_gemini_response(image, prompt):
-    """Función para llamar a la IA de Gemini"""
+def analizar_comida(img):
+    # Usamos el modelo más rápido y eficiente para fotos
     model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content([prompt, image])
+    
+    prompt = """
+    Eres un experto nutricionista. Analiza la imagen y:
+    1. Identifica qué alimentos hay.
+    2. Estima las calorías por cada alimento.
+    3. Dame el TOTAL de calorías.
+    4. Explica brevemente si es una opción saludable.
+    
+    Responde con un formato limpio y emojis, ideal para leer en pantalla de móvil.
+    """
+    
+    response = model.generate_content([prompt, img])
     return response.text
 
-# 3. Interfaz de Usuario
-st.header("🍎 NutriScan: Detector de Calorías")
-st.write("Sube una foto de tu plato y la IA estimará el contenido nutricional.")
+# --- DISEÑO DE LA APP ---
+st.title("🍎 NutriScan")
+st.write("Haz una foto a tu plato para saber sus calorías.")
 
-# Selector de entrada: Cámara o Archivo
-option = st.radio("Selecciona origen de la imagen:", ("Cámara", "Subir archivo"))
+# El botón de cámara que funciona en el móvil
+foto = st.camera_input("Capturar plato")
 
-uploaded_file = None
-if option == "Cámara":
-    uploaded_file = st.camera_input("Toma una foto de tu comida")
-else:
-    uploaded_file = st.file_uploader("Elige una imagen...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption='Imagen cargada', use_container_width=True)
+if foto:
+    # Mostrar la imagen que se acaba de tomar
+    img = Image.open(foto)
+    st.image(img, caption="Imagen capturada", use_container_width=True)
     
-    submit = st.button("Analizar Calorías")
-
-    # 4. El "Prompt" (Las instrucciones para la IA)
-    input_prompt = """
-    Actúa como un experto nutricionista con visión artificial. 
-    Analiza la imagen de la comida e identifica cada alimento presente.
-    Proporciona un desglose detallado en el siguiente formato:
-    
-    1. Lista de alimentos identificados con su peso estimado (en gramos).
-    2. Calorías estimadas por cada alimento.
-    3. Cálculo total de calorías del plato.
-    4. Breve consejo sobre si el plato es balanceado o no.
-    
-    Sé lo más preciso posible basándote en el tamaño visual de las porciones.
-    """
-
-    if submit:
-        with st.spinner('Analizando tu plato... 🥗'):
+    if st.button("🔍 ANALIZAR CALORÍAS"):
+        with st.spinner("La IA está analizando tu comida..."):
             try:
-                response = get_gemini_response(image, input_prompt)
-                st.subheader("Resultado del Análisis:")
-                st.write(response)
+                resultado = analizar_comida(img)
+                st.markdown("---")
+                st.markdown(resultado)
             except Exception as e:
-                st.error(f"Hubo un error: {e}")
+                st.error("Error al conectar con la IA. Revisa tu conexión.")
+
+st.markdown("---")
+st.caption("Esta app usa inteligencia artificial. Las calorías son estimaciones.")
